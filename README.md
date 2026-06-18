@@ -133,9 +133,11 @@ Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag 
 <!-- Answer both questions with at least 2–3 sentences each. -->
 
 **One way planning.md helped during implementation:**
+
 Writing out a complete interaction step-by-step order before touching any code, made implementing the agent feel much more straightforward. Each step I'd planned mapped almost directly to a block of code. If I hadn't figured out that logic ahead of time, I probably would have gotten stuck on edge cases mid-implementation, like what to do when both size and price are too restrictive at once, or what fields the session needed so that handle_query() could build the relaxed-search message for the user.
 
 **One divergence from your spec, and why:**
+
 In my error handling table I wrote that suggest_outfit with an empty wardrobe should set session["error"]. When I actually implemented it, I realized that made the experience worse — users with no wardrobe would get an error and see two empty panels, even though suggest_outfit was still returning useful styling tips. So I changed it to treat an empty wardrobe as a normal case: the loop keeps going and the user still gets a full response. The spec was a little vague on whether this was a real failure or just a fallback, and this felt like the right call once I could see it running.
 
 ---
