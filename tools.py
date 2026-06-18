@@ -78,6 +78,7 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
+    print(f"[tool] search_listings(description={description!r}, size={size!r}, max_price={max_price})")
     try:
         listings = load_listings()
     except Exception:
@@ -145,6 +146,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
+    print(f"[tool] suggest_outfit(item={new_item.get('title')!r})")
     # Validate wardrobe and extract items
     items = []
     if isinstance(wardrobe, dict):
@@ -251,6 +253,7 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
+    print(f"[tool] create_fit_card(item={new_item.get('title')!r})")
     if not outfit or not outfit.strip():
         return "Could not generate fit card: missing outfit details."
 

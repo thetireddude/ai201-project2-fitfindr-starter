@@ -105,6 +105,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     tool_calls = 0
 
     # Step 1: Parse query via LLM into structured fields
+    print(f"[agent] parsing query: {query!r}")
     parsed = {"description": query, "size": None, "max_price": None}
     prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "parse_query_prompt.txt")
     try:
@@ -137,6 +138,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         except ValueError:
             max_price = None
     session["search_params"] = {"description": description, "size": size, "max_price": max_price}
+    print(f"[agent] parsed → description={description!r}, size={size!r}, max_price={max_price}")
 
     # Step 2: Search listings with automatic relaxation on no results
     results = search_listings(description, size, max_price)
@@ -144,6 +146,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     # Relax attempt 1: drop size filter
     if not results and size is not None and tool_calls < 6:
+        print(f"[agent] no results — relaxing: dropping size filter '{size}'")
         results = search_listings(description, None, max_price)
         tool_calls += 1
         if results:
@@ -154,6 +157,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     # Relax attempt 2: also widen max_price by $20
     if not results and max_price is not None and tool_calls < 6:
         wider_price = max_price + 20.0
+        print(f"[agent] no results — relaxing: raising max_price to ${wider_price:.2f}")
         results = search_listings(description, None, wider_price)
         tool_calls += 1
         if results:
