@@ -141,12 +141,18 @@ Write out what a full user interaction looks like from start to finish — tool 
 
 **Step 1:**
 <!-- What does the agent do first? Which tool is called? With what input? -->
+The agent parses the query into structured params (description='vintage graphic tee', max_price=30.0) and calls search_listings(description='vintage graphic tee', max_price=30.0).
 
 **Step 2:**
 <!-- What happens next? What was returned from step 1? What tool is called now? -->
+a scored list of matching listing dicts (sorted by relevance) is returned in step 1. The agent selects the top-ranked listing from the results. It then calls suggest_outfit(new_item=[selected item], wardrobe=[the user's wardrobe dict that contains "baggy straight-leg jeans" and "chunky white sneakers"]. If the wardrobe is empty, suggest_outfit should return general styling advice instead of failing.
 
 **Step 3:**
 <!-- Continue until the full interaction is complete -->
+the agent now calls create_fit_card() with outfit=[he outfit suggestion string from step 2] and new_item=[dict of highest scored item from the output from step 1]. 
+
+a non-empty outfit suggestion string (1–2 outfits) is expected as the output is returned in step 2. The agent calls create_fit_card(outfit=[outfit suggestion], new_item=[selected item]) to produce a short 2–4 sentence social caption. If outfit is missing or empty, create_fit_card should return a descriptive error string.
 
 **Final output to user:**
 <!-- What does the user actually see at the end? -->
+A concise, user-facing response that includes: a short list of top matching listings (title, price, platform, one-line summary); the chosen top pick with full listing details; 1–2 concrete outfit suggestions that reference named pieces from the user’s wardrobe; a 2–4 sentence fit caption ready to copy/post
