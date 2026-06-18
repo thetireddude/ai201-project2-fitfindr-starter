@@ -18,7 +18,11 @@ Usage (once implemented):
     print(result["error"])   # None on success
 """
 
-from tools import search_listings, suggest_outfit, create_fit_card
+import json
+import os
+import re
+
+from tools import _get_groq_client, search_listings, suggest_outfit, create_fit_card
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -92,9 +96,105 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     Before writing code, complete the Planning Loop and State Management sections
     of planning.md — your implementation should match what you described there.
     """
-    # TODO: implement the planning loop
     session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
+    session["relaxed_search"] = False
+    session["relaxed_params"] = None
+    session["notes"] = []
+    session["search_params"] = {}
+
+    tool_calls = 0
+
+    # Step 1: Parse query via LLM into structured fields
+    parsed = {"description": query, "size": None, "max_price": None}
+    prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "parse_query_prompt.txt")
+    try:
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            template = f.read()
+        prompt = template.replace("{query}", query)
+        client = _get_groq_client()
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=150,
+        )
+        raw = response.choices[0].message.content.strip()
+        # Strip markdown code fences if the model added them
+        raw = re.sub(r"^```[a-z]*\n?", "", raw)
+        raw = raw.rstrip("`").strip()
+        parsed = json.loads(raw)
+    except Exception:
+        pass  # fall back to raw query as description
+
+    session["parsed"] = parsed
+    description = parsed.get("description") or query
+    size = parsed.get("size")
+    max_price = parsed.get("max_price")
+    # Coerce max_price to float in case the LLM returned a string like "$30"
+    if isinstance(max_price, str):
+        try:
+            max_price = float(max_price.replace("$", "").strip())
+        except ValueError:
+            max_price = None
+    session["search_params"] = {"description": description, "size": size, "max_price": max_price}
+
+    # Step 2: Search listings with automatic relaxation on no results
+    results = search_listings(description, size, max_price)
+    tool_calls += 1
+
+    # Relax attempt 1: drop size filter
+    if not results and size is not None and tool_calls < 6:
+        results = search_listings(description, None, max_price)
+        tool_calls += 1
+        if results:
+            session["relaxed_search"] = True
+            session["relaxed_params"] = {"description": description, "size": None, "max_price": max_price}
+            session["notes"].append(f"Relaxed: removed size filter '{size}'")
+
+    # Relax attempt 2: also widen max_price by $20
+    if not results and max_price is not None and tool_calls < 6:
+        wider_price = max_price + 20.0
+        results = search_listings(description, None, wider_price)
+        tool_calls += 1
+        if results:
+            session["relaxed_search"] = True
+            session["relaxed_params"] = {"description": description, "size": None, "max_price": wider_price}
+            session["notes"].append(f"Relaxed: removed size filter and raised max_price to ${wider_price:.2f}")
+
+    if not results:
+        session["error"] = "No listings found — try broader keywords or remove size/price filters."
+        return session
+
+    session["search_results"] = results
+    session["selected_item"] = results[0]
+
+    # Step 3: Suggest outfit
+    if tool_calls >= 6:
+        session["error"] = "Reached tool call safety limit."
+        return session
+
+    outfit = suggest_outfit(session["selected_item"], wardrobe)
+    tool_calls += 1
+
+    if not outfit or not outfit.strip():
+        session["error"] = "Could not generate outfit suggestion."
+        return session
+
+    session["outfit_suggestion"] = outfit
+
+    # Step 4: Create fit card
+    if tool_calls >= 6:
+        session["error"] = "Reached tool call safety limit."
+        return session
+
+    fit_card = create_fit_card(outfit, session["selected_item"])
+    tool_calls += 1
+
+    if fit_card.startswith("Could not generate fit card"):
+        session["error"] = fit_card
+        return session
+
+    session["fit_card"] = fit_card
     return session
 
 

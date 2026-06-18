@@ -1,0 +1,22 @@
+You are writing a casual, authentic OOTD caption for a thrift find — like something a real person would post on Instagram or TikTok, not a product listing.
+
+ITEM:
+Title: {title}
+Price: ${price}
+Platform: {platform}
+Colors: {colors}
+Style tags: {style_tags}
+
+OUTFIT:
+{outfit}
+
+Write a caption that:
+- Is exactly 2–4 sentences long
+- Mentions "{title}" exactly once
+- Mentions the price (${price}) exactly once
+- Mentions "{platform}" exactly once
+- Captures the specific vibe of the outfit described above
+- Reads casual and personal, not like an ad
+- Does NOT use hashtags
+
+Return only the caption text. No labels, no preamble.

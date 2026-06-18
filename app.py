@@ -43,8 +43,45 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
            string and return it along with session["outfit_suggestion"] and
            session["fit_card"].
     """
-    # TODO: implement this function
-    return "Agent not yet implemented.", "", ""
+    if not user_query or not user_query.strip():
+        return "Please enter what you're looking for (e.g. 'vintage graphic tee under $30').", "", ""
+
+    wardrobe = get_example_wardrobe() if wardrobe_choice == "Example wardrobe" else get_empty_wardrobe()
+
+    session = run_agent(user_query.strip(), wardrobe)
+
+    if session.get("error"):
+        return session["error"], "", ""
+
+    # Build listing text
+    item = session["selected_item"]
+    listing_text = (
+        f"{item['title']}\n"
+        f"${item['price']:.2f}  ·  {item['platform']}  ·  Size {item['size']}\n"
+        f"Condition: {item['condition']}\n\n"
+        f"{item['description']}"
+    )
+
+    # Prepend relaxed-search notice if filters were loosened
+    if session.get("relaxed_search"):
+        orig = session.get("search_params", {})
+        relaxed = session.get("relaxed_params", {})
+
+        def _fmt(p):
+            parts = [p.get("description", "")]
+            if p.get("size"):
+                parts.append(f"size {p['size']}")
+            if p.get("max_price") is not None:
+                parts.append(f"under ${p['max_price']:.0f}")
+            return ", ".join(filter(None, parts))
+
+        notice = (
+            f"I did not find any listing for {_fmt(orig)}. "
+            f"However I found listings for {_fmt(relaxed)}.\n\n"
+        )
+        listing_text = notice + listing_text
+
+    return listing_text, session["outfit_suggestion"], session["fit_card"]
 
 
 # ── interface ─────────────────────────────────────────────────────────────────
