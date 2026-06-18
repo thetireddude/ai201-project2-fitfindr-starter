@@ -82,6 +82,7 @@ def search_listings(
     try:
         listings = load_listings()
     except Exception:
+        print("[tool] search_listings → [] (data load error)")
         return []
 
     # Price filter
@@ -96,6 +97,7 @@ def search_listings(
     # Tokenize the query
     query_tokens = set(_tokenize(description))
     if not query_tokens:
+        print("[tool] search_listings → [] (no query tokens)")
         return []
 
     # Score each listing by token overlap across all searchable fields
@@ -116,7 +118,10 @@ def search_listings(
 
     # Sort by score descending, tie-break by lower price
     scored.sort(key=lambda x: (-x[0], x[1]))
-    return [entry[2] for entry in scored]
+    results = [entry[2] for entry in scored]
+    top = f", top: {results[0]['title']!r}" if results else ""
+    print(f"[tool] search_listings → {len(results)} result(s){top}")
+    return results
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -198,6 +203,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
     except OSError:
+        print(f"[tool] suggest_outfit → (fallback — prompt file missing) {fallback[:80]!r}...")
         return fallback
 
     prompt = template.format(
@@ -219,8 +225,11 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
             max_tokens=400,
         )
         result = response.choices[0].message.content.strip()
-        return result if result else fallback
+        output = result if result else fallback
+        print(f"[tool] suggest_outfit → {output[:120]!r}...")
+        return output
     except Exception:
+        print(f"[tool] suggest_outfit → (fallback — LLM error) {fallback[:80]!r}...")
         return fallback
 
 
@@ -255,6 +264,7 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     """
     print(f"[tool] create_fit_card(item={new_item.get('title')!r})")
     if not outfit or not outfit.strip():
+        print("[tool] create_fit_card → error: missing outfit details")
         return "Could not generate fit card: missing outfit details."
 
     title = new_item.get("title", "this item")
@@ -273,6 +283,7 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
     except OSError:
+        print(f"[tool] create_fit_card → (fallback — prompt file missing) {fallback[:80]!r}...")
         return fallback
 
     prompt = template.format(
@@ -293,6 +304,9 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
             max_tokens=200,
         )
         result = response.choices[0].message.content.strip()
-        return result if result else fallback
+        output = result if result else fallback
+        print(f"[tool] create_fit_card → {output[:120]!r}...")
+        return output
     except Exception:
+        print(f"[tool] create_fit_card → (fallback — LLM error) {fallback[:80]!r}...")
         return fallback
