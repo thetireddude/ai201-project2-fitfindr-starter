@@ -75,26 +75,43 @@ Your README submission must document each tool's name, inputs, and return value.
      Use a specific example — do not leave this as a template. -->
 
 **User query:**
+vintage graphic tee size XXS under $30
+
 
 **Step 1 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: search_listings
+- Input: description='vintage graphic tee', size='XXS', max_price=30.0
+- Why this tool: agent intially searches for listings based on the user's query
+- Output: 0 result(s)
 
 **Step 2 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: search_listings
+- Input: description='vintage graphic tee', size=None, max_price=30.0
+- Why this tool: agent drops the size constraint and performs a relaxed search to find other similar listings
+- Output: 20 result(s), top: 'Y2K Baby Tee — Butterfly Print'
 
 **Step 3 — Tool called:**
-- Tool:
-- Input:
-- Why this tool:
-- Output:
+- Tool: suggest_outfit
+- Input: item='Y2K Baby Tee — Butterfly Print'
+- Why this tool: the agent has now found a listing so it moves on to the next step
+- Output: 'Outfit 1: Pair the Y2K Baby Tee with the baggy straight-leg jeans for a cute, casual look that blends Y2K charm with str'...
+
+**Step 4 — Tool called:**
+- Tool: create_fit_card
+- Input: item='Y2K Baby Tee — Butterfly Print'
+- Why this tool: the agent moves on to the last step of creating a caption as the last tool call successfully outputted.
+- Output: "I just scored the cutest Y2K Baby Tee — Butterfly Print on depop for $18.0 and I'm obsessed with how it adds a touch of "...
 
 **Final output to user:**
+```
+I did not find any listing for vintage graphic tee, size XXS, under $30. However I found listings for vintage graphic tee, under $30.
+
+Y2K Baby Tee — Butterfly Print
+$18.00  ·  depop  ·  Size S/M
+Condition: excellent
+
+Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.
+```
 
 ---
 
@@ -105,9 +122,9 @@ Your README submission must document each tool's name, inputs, and return value.
 
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| `search_listings` | | |
-| `suggest_outfit` | | |
-| `create_fit_card` | | |
+| `search_listings` | No results match the query| perform relaxed searches to find more listings. If no listings found at all, returns "No listings found — try broader keywords or remove size/price filters."|
+| `suggest_outfit` | Wardrobe is empty| returns styling tips as output from suggest_outfit|
+| `create_fit_card` | Outfit input is missing or incomplete| returns "Could not generate fit card: missing outfit details."|
 
 ---
 
@@ -116,8 +133,10 @@ Your README submission must document each tool's name, inputs, and return value.
 <!-- Answer both questions with at least 2–3 sentences each. -->
 
 **One way planning.md helped during implementation:**
+Writing out a complete interaction step-by-step order before touching any code, made implementing the agent feel much more straightforward. Each step I'd planned mapped almost directly to a block of code. If I hadn't figured out that logic ahead of time, I probably would have gotten stuck on edge cases mid-implementation, like what to do when both size and price are too restrictive at once, or what fields the session needed so that handle_query() could build the relaxed-search message for the user.
 
 **One divergence from your spec, and why:**
+In my error handling table I wrote that suggest_outfit with an empty wardrobe should set session["error"]. When I actually implemented it, I realized that made the experience worse — users with no wardrobe would get an error and see two empty panels, even though suggest_outfit was still returning useful styling tips. So I changed it to treat an empty wardrobe as a normal case: the loop keeps going and the user still gets a full response. The spec was a little vague on whether this was a real failure or just a fallback, and this felt like the right call once I could see it running.
 
 ---
 
